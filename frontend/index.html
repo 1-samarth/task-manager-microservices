@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Manager Microservices</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { margin: 0; background: #eef2f7; color: #222; }
+        .navbar { background: #1e293b; color: white; padding: 18px 35px; font-size: 24px; font-weight: bold; }
+        .container { width: 95%; max-width: 1200px; margin: 25px auto; }
+        .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 25px; }
+        .card { background: white; padding: 22px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .stat-title { color: #64748b; font-size: 14px; }
+        .stat-number { margin-top: 10px; font-size: 30px; font-weight: bold; color: #2563eb; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+        h2 { margin-top: 0; color: #1e293b; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; }
+        button { padding: 11px 18px; border: none; border-radius: 8px; background: #2563eb; color: white; font-size: 15px; cursor: pointer; margin-top: 8px; }
+        button:hover { background: #1d4ed8; }
+        .delete-btn { background: #dc2626; }
+        .delete-btn:hover { background: #b91c1c; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; background: white; border-radius: 10px; overflow: hidden; }
+        th { background: #1e293b; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        tr:hover { background: #f8fafc; }
+        .section { margin-top: 25px; }
+        .error { color: #dc2626; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+
+<body>
+
+<div class="navbar">Task Manager Microservices</div>
+
+<div class="container">
+
+    <div class="dashboard">
+        <div class="card"><div class="stat-title">Total Users</div><div class="stat-number" id="totalUsers">0</div></div>
+        <div class="card"><div class="stat-title">Total Tasks</div><div class="stat-number" id="totalTasks">0</div></div>
+        <div class="card"><div class="stat-title">Pending Tasks</div><div class="stat-number" id="pendingTasks">0</div></div>
+        <div class="card"><div class="stat-title">Completed Tasks</div><div class="stat-number" id="completedTasks">0</div></div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Add User</h2>
+            <input type="text" id="userName" placeholder="Enter user name">
+            <input type="email" id="userEmail" placeholder="Enter email">
+            <button onclick="addUser()">Add User</button>
+        </div>
+
+        <div class="card">
+            <h2>Add Task</h2>
+            <input type="text" id="taskTitle" placeholder="Enter task title">
+            <select id="taskUserId"></select>
+            <select id="taskStatus">
+                <option value="PENDING">PENDING</option>
+                <option value="COMPLETED">COMPLETED</option>
+            </select>
+            <button onclick="addTask()">Add Task</button>
+        </div>
+    </div>
+
+    <div class="card section">
+        <h2>Users List</h2>
+        <div id="userError" class="error"></div>
+        <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Action</th></tr></thead>
+            <tbody id="usersTable"></tbody>
+        </table>
+    </div>
+
+    <div class="card section">
+        <h2>Tasks List</h2>
+        <div id="taskError" class="error"></div>
+        <table>
+            <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>User ID</th><th>Action</th></tr></thead>
+            <tbody id="tasksTable"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+const USER_API = "http://localhost:8081/users";
+const TASK_API = "http://localhost:8082/tasks";
+
+// 🔥 AUTO LOAD FIX (MAIN CHANGE)
+document.addEventListener("DOMContentLoaded", function () {
+    loadUsers();
+    loadTasks();
+});
+
+async function loadUsers() {
+    try {
+        const res = await fetch(USER_API);
+        const users = await res.json();
+
+        document.getElementById("totalUsers").innerText = users.length;
+
+        let table = "";
+        let options = `<option value="">Select User</option>`;
+
+        users.forEach(u => {
+            table += `<tr>
+                <td>${u.id}</td>
+                <td>${u.name}</td>
+                <td>${u.email}</td>
+                <td><button class="delete-btn" onclick="deleteUser(${u.id})">Delete</button></td>
+            </tr>`;
+            options += `<option value="${u.id}">${u.name}</option>`;
+        });
+
+        document.getElementById("usersTable").innerHTML = table;
+        document.getElementById("taskUserId").innerHTML = options;
+
+    } catch {
+        document.getElementById("userError").innerText = "User Service not running";
+    }
+}
+
+async function loadTasks() {
+    try {
+        const res = await fetch(TASK_API);
+        const tasks = await res.json();
+
+        document.getElementById("totalTasks").innerText = tasks.length;
+        document.getElementById("pendingTasks").innerText = tasks.filter(t => t.status==="PENDING").length;
+        document.getElementById("completedTasks").innerText = tasks.filter(t => t.status==="COMPLETED").length;
+
+        let table = "";
+        tasks.forEach(t => {
+            table += `<tr>
+                <td>${t.id}</td>
+                <td>${t.title}</td>
+                <td>${t.status}</td>
+                <td>${t.userId}</td>
+                <td><button class="delete-btn" onclick="deleteTask(${t.id})">Delete</button></td>
+            </tr>`;
+        });
+
+        document.getElementById("tasksTable").innerHTML = table;
+
+    } catch {
+        document.getElementById("taskError").innerText = "Task Service not running";
+    }
+}
+
+async function addUser() {
+    const name = userName.value;
+    const email = userEmail.value;
+
+    await fetch(USER_API, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({name,email})
+    });
+
+    userName.value=""; userEmail.value="";
+    loadUsers();
+}
+
+async function addTask() {
+    const title = taskTitle.value;
+    const userId = taskUserId.value;
+    const status = taskStatus.value;
+
+    await fetch(TASK_API, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({title,status,userId:Number(userId)})
+    });
+
+    taskTitle.value="";
+    loadTasks();
+}
+
+async function deleteUser(id){
+    await fetch(`${USER_API}/${id}`,{method:"DELETE"});
+    loadUsers();
+}
+
+async function deleteTask(id){
+    await fetch(`${TASK_API}/${id}`,{method:"DELETE"});
+    loadTasks();
+}
+</script>
+
+</body>
+</html>
