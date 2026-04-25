@@ -81,10 +81,10 @@
 </div>
 
 <script>
-const USER_API = "http://localhost:8081/users";
-const TASK_API = "http://localhost:8082/tasks";
+const USER_API = "https://user-service-2ciw.onrender.com/users";
+const TASK_API = "https://task-service-api-nl9u.onrender.com/tasks";
 
-// 🔥 AUTO LOAD FIX (MAIN CHANGE)
+// AUTO LOAD
 document.addEventListener("DOMContentLoaded", function () {
     loadUsers();
     loadTasks();
@@ -92,6 +92,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 async function loadUsers() {
     try {
+        document.getElementById("userError").innerText = "";
+
         const res = await fetch(USER_API);
         const users = await res.json();
 
@@ -113,19 +115,21 @@ async function loadUsers() {
         document.getElementById("usersTable").innerHTML = table;
         document.getElementById("taskUserId").innerHTML = options;
 
-    } catch {
-        document.getElementById("userError").innerText = "User Service not running";
+    } catch (error) {
+        document.getElementById("userError").innerText = "User Service not running or CORS error";
     }
 }
 
 async function loadTasks() {
     try {
+        document.getElementById("taskError").innerText = "";
+
         const res = await fetch(TASK_API);
         const tasks = await res.json();
 
         document.getElementById("totalTasks").innerText = tasks.length;
-        document.getElementById("pendingTasks").innerText = tasks.filter(t => t.status==="PENDING").length;
-        document.getElementById("completedTasks").innerText = tasks.filter(t => t.status==="COMPLETED").length;
+        document.getElementById("pendingTasks").innerText = tasks.filter(t => t.status === "PENDING").length;
+        document.getElementById("completedTasks").innerText = tasks.filter(t => t.status === "COMPLETED").length;
 
         let table = "";
         tasks.forEach(t => {
@@ -140,8 +144,8 @@ async function loadTasks() {
 
         document.getElementById("tasksTable").innerHTML = table;
 
-    } catch {
-        document.getElementById("taskError").innerText = "Task Service not running";
+    } catch (error) {
+        document.getElementById("taskError").innerText = "Task Service not running or CORS error";
     }
 }
 
@@ -150,12 +154,13 @@ async function addUser() {
     const email = userEmail.value;
 
     await fetch(USER_API, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({name,email})
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email })
     });
 
-    userName.value=""; userEmail.value="";
+    userName.value = "";
+    userEmail.value = "";
     loadUsers();
 }
 
@@ -165,22 +170,22 @@ async function addTask() {
     const status = taskStatus.value;
 
     await fetch(TASK_API, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({title,status,userId:Number(userId)})
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, status, userId: Number(userId) })
     });
 
-    taskTitle.value="";
+    taskTitle.value = "";
     loadTasks();
 }
 
-async function deleteUser(id){
-    await fetch(`${USER_API}/${id}`,{method:"DELETE"});
+async function deleteUser(id) {
+    await fetch(`${USER_API}/${id}`, { method: "DELETE" });
     loadUsers();
 }
 
-async function deleteTask(id){
-    await fetch(`${TASK_API}/${id}`,{method:"DELETE"});
+async function deleteTask(id) {
+    await fetch(`${TASK_API}/${id}`, { method: "DELETE" });
     loadTasks();
 }
 </script>
